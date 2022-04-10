@@ -37,3 +37,11 @@ async fn main() -> Result<()> {
     }
 }
 ```
+
+# Future features
+
+Things I'd try to add to this project:
+
+* Server/listen sockets
+* mTLS Auth
+* Certificate Pinning

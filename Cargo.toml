@@ -1,6 +1,6 @@
 [package]
 name = "easy-tokio-rustls"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Kenneth Wilke <kenneth.wilke@gmail.com>"]
 edition = "2021"
 description = "This library provides convenient abstractions for creating simple TLS sockets with `tokio-rustls.`"
