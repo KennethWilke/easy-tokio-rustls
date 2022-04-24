@@ -31,12 +31,14 @@ fn get_cafile_store(cafile: &PathBuf) -> Result<RootCertStore> {
 
 fn get_default_store() -> Result<RootCertStore> {
     let mut cert_store = rustls::RootCertStore::empty();
-    cert_store.add_server_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.0.iter().map(|trust_anchor| {
-        OwnedTrustAnchor::from_subject_spki_name_constraints(
-            trust_anchor.subject,
-            trust_anchor.spki,
-            trust_anchor.name_constraints,
-        )
-    }));
+    cert_store.add_server_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.0.iter().map(
+        |trust_anchor| {
+            OwnedTrustAnchor::from_subject_spki_name_constraints(
+                trust_anchor.subject,
+                trust_anchor.spki,
+                trust_anchor.name_constraints,
+            )
+        },
+    ));
     Ok(cert_store)
 }

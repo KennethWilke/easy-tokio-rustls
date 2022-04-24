@@ -33,9 +33,13 @@ pub struct TlsClient {
 }
 
 impl TlsClient {
-    pub async fn new(host: &str, port: u16) -> Result<Self> {
-        let address = resolve_address(host, port)?;
+    pub async fn new<T>(host: T, port: u16) -> Result<Self>
+    where
+        T: ToString,
+    {
         let host = host.to_string();
+        let address = resolve_address(host.as_str(), port)?;
+
         Ok(TlsClient {
             host,
             address,

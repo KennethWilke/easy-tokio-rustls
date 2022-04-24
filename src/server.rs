@@ -1,13 +1,15 @@
-use std::{io::BufReader, fs::File, sync::Arc, net::SocketAddr};
+use std::{fs::File, io::BufReader, net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
 use rustls_pemfile::{certs, rsa_private_keys};
 use thiserror::Error;
 use tokio::net::{TcpListener, TcpStream};
-use tokio_rustls::{rustls::{Certificate, PrivateKey, self, ServerConfig}, TlsAcceptor, TlsStream};
+use tokio_rustls::{
+    rustls::{self, Certificate, PrivateKey, ServerConfig},
+    TlsAcceptor, TlsStream,
+};
 
 use crate::resolve_address;
-
 
 #[derive(Error, Debug)]
 pub enum TlsServerError {
@@ -21,22 +23,33 @@ pub struct TlsServer {
     pub interface: String,
 }
 
-
-
 impl TlsServer {
-    pub async fn new(interface: &str, port: u16, cert_file: String, key_file: String) -> Result<Self> {
+    pub async fn new<T, U, V>(interface: T, port: u16, cert_file: U, key_file: V) -> Result<Self>
+    where
+        T: ToString,
+        U: ToString,
+        V: ToString,
+    {
+        let interface = interface.to_string();
+        let cert_file = cert_file.to_string();
+        let key_file = key_file.to_string();
+
         let certificates = load_certificates(cert_file)?;
         let mut keys = load_keys(key_file)?;
-        let address = resolve_address(interface, port)?;
+        println!("keys: {}", keys.len());
+        let address = resolve_address(interface.as_str(), port)?;
 
         let config = rustls::ServerConfig::builder()
             .with_safe_defaults()
             .with_no_client_auth()
             .with_single_cert(certificates, keys.remove(0))?;
 
-        Ok(TlsServer{config: Arc::new(config), address, interface: interface.into()})
+        Ok(TlsServer {
+            config: Arc::new(config),
+            address,
+            interface: interface.into(),
+        })
     }
-
 
     pub async fn listen(&self) -> Result<TlsListener> {
         Ok(TlsListener::new(&self.address, &self.config).await?)
@@ -52,19 +65,19 @@ impl TlsListener {
     pub async fn new(address: &SocketAddr, config: &Arc<ServerConfig>) -> Result<Self> {
         let acceptor = TlsAcceptor::from(config.clone());
         let listener = TcpListener::bind(address).await?;
-        Ok(TlsListener{ listener, acceptor })
+        Ok(TlsListener { listener, acceptor })
     }
 
     pub async fn socket_accept(&self) -> Result<(TcpClientStream, SocketAddr)> {
         let (stream, address) = self.listener.accept().await?;
         let acceptor = self.acceptor.clone();
-        Ok((TcpClientStream{stream, acceptor}, address))
+        Ok((TcpClientStream { stream, acceptor }, address))
     }
 }
 
 pub struct TcpClientStream {
     stream: TcpStream,
-    acceptor: TlsAcceptor
+    acceptor: TlsAcceptor,
 }
 
 impl TcpClientStream {
@@ -74,7 +87,6 @@ impl TcpClientStream {
         Ok(stream)
     }
 }
-
 
 // TODO make async!
 fn load_certificates(path: String) -> Result<Vec<Certificate>> {
