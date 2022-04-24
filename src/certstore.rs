@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::fs::File;
 use std::io::BufReader;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio_rustls::rustls::{self, OwnedTrustAnchor, RootCertStore};
 use tokio_rustls::webpki;
 
@@ -13,7 +13,7 @@ pub fn get_root_store(cafile: &Option<PathBuf>) -> Result<RootCertStore> {
     Ok(cert_store)
 }
 
-fn get_cafile_store(cafile: &PathBuf) -> Result<RootCertStore> {
+fn get_cafile_store(cafile: &Path) -> Result<RootCertStore> {
     let mut cert_store = rustls::RootCertStore::empty();
     let mut pemfile = BufReader::new(File::open(cafile)?);
     let certs = rustls_pemfile::certs(&mut pemfile)?;

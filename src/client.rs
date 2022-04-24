@@ -20,12 +20,14 @@ fn get_client_config(root_store: RootCertStore) -> ClientConfig {
         .with_no_client_auth()
 }
 
+/// Represents errors that may be returned through [`TlsClient`] usage.
 #[derive(Error, Debug)]
 pub enum TlsClientError {
     #[error("Address resolution error: {0}:{1}")]
     ResolutionFailure(String, u16),
 }
 
+/// Primary class for creating and connecting clientside TLS sockets
 pub struct TlsClient {
     host: String,
     address: SocketAddr,
@@ -33,6 +35,11 @@ pub struct TlsClient {
 }
 
 impl TlsClient {
+    /// Returns a new [`TlsClient`] struct, this currently using the blocking
+    /// address resolution method upon creation. In future changes I will make
+    /// this use asynchronous resolution, but resolution will still occur at
+    /// creation. Connection attempts are performed later with calls to
+    /// [`TlsClient::connect`]
     pub async fn new<T>(host: T, port: u16) -> Result<Self>
     where
         T: ToString,
@@ -47,10 +54,14 @@ impl TlsClient {
         })
     }
 
+    /// This function can be called if you need to set or use a certificate
+    /// authority file instead of the defaults
     pub async fn set_cafile(&mut self, cafile: PathBuf) {
         self.cafile = Some(cafile)
     }
 
+    /// This function triggers the actual connection to the remote TLS endpoint
+    /// A [`TlsStream<TcpStream>`] handle will be returned on success
     pub async fn connect(&self) -> Result<TlsStream<TcpStream>> {
         let cafile = &self.cafile;
         let root_store = certstore::get_root_store(cafile)?;

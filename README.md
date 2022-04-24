@@ -2,8 +2,6 @@
 
 This library provides convenient abstractions for creating simple TLS sockets with `tokio-rustls`.
 
-Server sockets not yet implemented.
-
 ## Example client usage
 
 ```rust
@@ -62,7 +60,7 @@ pub async fn main() -> Result<()> {
     println!("Listening on {}:{}", interface, port);
 
     // This is a simplified server, handling 1 connection at a time certainly isn't recommended
-    let (stream, addr) = listener.socket_accept().await?;
+    let (stream, addr) = listener.stream_accept().await?;
     println!("Client connected from {}", addr);
 
     let mut client = stream.tls_accept().await?;
