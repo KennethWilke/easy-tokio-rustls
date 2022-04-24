@@ -2,20 +2,32 @@
 //! sockets with `tokio-rustls`.
 
 use anyhow::Result;
-use std::net::{SocketAddr, ToSocketAddrs};
+use std::net::SocketAddr;
+use thiserror::Error;
+use tokio::net::{lookup_host, ToSocketAddrs};
 
-mod certstore;
+mod certificates;
 mod client;
 mod server;
 
-pub use client::{TlsClient, TlsClientError};
-pub use server::{TlsServer, TlsServerError};
+pub use client::TlsClient;
+pub use server::TlsServer;
 
-/// This is a simplified, blocking/synchronous socket address resolver
-pub fn resolve_address(host: &str, port: u16) -> Result<SocketAddr> {
-    let addr = (host, port)
-        .to_socket_addrs()?
+/// Represents custom errors returned directly by this crate
+#[derive(Error, Debug)]
+pub enum EasyTlsError {
+    #[error("Failed to resolve address for '{0}'")]
+    ResolutionFailure(String),
+}
+
+/// This is a simplified address resolver
+pub async fn resolve_address<T>(host: T) -> Result<SocketAddr>
+where
+    T: ToSocketAddrs + ToString + Copy,
+{
+    let mut addresses = lookup_host(host).await?;
+    let address = addresses
         .next()
-        .ok_or_else(|| TlsClientError::ResolutionFailure(String::from(host), port))?;
-    Ok(addr)
+        .ok_or_else(|| EasyTlsError::ResolutionFailure(host.to_string()))?;
+    Ok(address)
 }

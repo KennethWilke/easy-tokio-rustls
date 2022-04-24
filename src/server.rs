@@ -1,22 +1,14 @@
-use std::{fs::File, io::BufReader, net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
-use rustls_pemfile::{certs, rsa_private_keys};
-use thiserror::Error;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_rustls::{
-    rustls::{self, Certificate, PrivateKey, ServerConfig},
+    rustls::{self, ServerConfig},
     TlsAcceptor, TlsStream,
 };
 
+use crate::certificates::{load_certificates, load_keys};
 use crate::resolve_address;
-
-/// Represents errors that may be returned through [`TlsServer`] usage.
-#[derive(Error, Debug)]
-pub enum TlsServerError {
-    #[error("Address resolution error: {0}:{1}")]
-    ResolutionFailure(String, u16),
-}
 
 /// Primary class for creating and connecting serverside TLS sockets
 pub struct TlsServer {
@@ -33,7 +25,7 @@ impl TlsServer {
     /// settings using the first private key from the key_file. The address
     /// binding and listening occurs later when [`TlsServer::listen`] is
     /// called.
-    pub async fn new<T, U, V>(interface: T, port: u16, cert_file: U, key_file: V) -> Result<Self>
+    pub async fn new<T, U, V>(interface: T, cert_file: U, key_file: V) -> Result<Self>
     where
         T: ToString,
         U: ToString,
@@ -46,7 +38,7 @@ impl TlsServer {
         let certificates = load_certificates(cert_file)?;
         let mut keys = load_keys(key_file)?;
 
-        let address = resolve_address(interface.as_str(), port)?;
+        let address = resolve_address(interface.as_str()).await?;
 
         let config = rustls::ServerConfig::builder()
             .with_safe_defaults()
@@ -112,24 +104,4 @@ impl TcpClientStream {
         let stream = tokio_rustls::TlsStream::Server(stream);
         Ok(stream)
     }
-}
-
-// TODO make async!
-fn load_certificates(path: String) -> Result<Vec<Certificate>> {
-    let mut reader = BufReader::new(File::open(path)?);
-    let mut certificates: Vec<Certificate> = Vec::new();
-    for cert in certs(&mut reader)? {
-        certificates.push(Certificate(cert))
-    }
-    Ok(certificates)
-}
-
-// TODO make async!
-fn load_keys(path: String) -> Result<Vec<PrivateKey>> {
-    let mut reader = BufReader::new(File::open(path)?);
-    let mut keys: Vec<PrivateKey> = Vec::new();
-    for key in rsa_private_keys(&mut reader)? {
-        keys.push(PrivateKey(key))
-    }
-    Ok(keys)
 }

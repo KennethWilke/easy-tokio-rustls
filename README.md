@@ -52,8 +52,8 @@ const RESPONSE: &[u8] = b"HTTP/1.1 200 OK\r\nServer: a very great server\r\n\r\n
 pub async fn main() -> Result<()> {
     let interface = "0.0.0.0";
     let port = 8443;
-    let cert_file = "/home/ubuntu/fullchain.pem";
-    let key_file = "/home/ubuntu/privkey-rsa.pem";
+    let cert_file = "/path/to/fullchain.pem";
+    let key_file = "/path/to/privkey-rsa.pem";
 
     let server = TlsServer::new(interface, port, cert_file, key_file).await?;
     let listener = server.listen().await?;

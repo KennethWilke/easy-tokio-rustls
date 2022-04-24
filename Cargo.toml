@@ -1,6 +1,6 @@
 [package]
 name = "easy-tokio-rustls"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Kenneth Wilke <kenneth.wilke@gmail.com>"]
 edition = "2021"
 description = "This library provides convenient abstractions for creating simple TLS sockets with `tokio-rustls.`"
@@ -14,6 +14,6 @@ license = "MIT"
 tokio = { version = "1.17.0", features = ["full"] }
 tokio-rustls = "0.23.3"
 webpki-roots = "0.22.3"
-rustls-pemfile = "0.3.0"
+rustls-pemfile = "1.0.0"
 thiserror = "1.0.30"
-anyhow = "1.0"
+anyhow = "1.0.57"
