@@ -6,9 +6,10 @@ use tokio_rustls::webpki;
 
 use tokio_rustls::rustls::{Certificate, PrivateKey};
 
-const MAX_PEM_SIZE: usize = 16 * 1024;
+const MAX_PEM_SIZE: usize = 32 * 1024;
 const PEM_REGEX: &str = r"-----BEGIN (.+?)-----\n(?s)(.+?)\n-----END (.+?)-----";
 
+/// Loads the root certificate storage, uses defaults if no cafile
 pub async fn get_root_store(cafile: Option<String>) -> Result<RootCertStore> {
     let cert_store = match cafile {
         Some(cafile) => get_cafile_store(cafile).await,
@@ -46,6 +47,7 @@ fn get_default_store() -> Result<RootCertStore> {
     Ok(cert_store)
 }
 
+/// Loads certificates from the given file
 pub async fn load_certificates(path: String) -> Result<Vec<Certificate>> {
     let mut certificates: Vec<Certificate> = Vec::new();
     for cert in read_pem(path).await? {
@@ -54,6 +56,7 @@ pub async fn load_certificates(path: String) -> Result<Vec<Certificate>> {
     Ok(certificates)
 }
 
+/// Loads private keys from the given file
 pub async fn load_keys(path: String) -> Result<Vec<PrivateKey>> {
     let mut keys: Vec<PrivateKey> = Vec::new();
     for key in read_pem(path).await? {
@@ -62,6 +65,7 @@ pub async fn load_keys(path: String) -> Result<Vec<PrivateKey>> {
     Ok(keys)
 }
 
+/// Loads PEM encoded entities
 pub async fn read_pem(path: String) -> Result<Vec<Vec<u8>>> {
     let mut file = tokio::fs::File::open(path).await?;
     let mut buffer = [0; MAX_PEM_SIZE];

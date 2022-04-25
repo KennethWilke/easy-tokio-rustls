@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use std::convert::TryFrom;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -7,9 +7,9 @@ use tokio_rustls::client::TlsStream;
 use tokio_rustls::rustls::{self, ClientConfig, RootCertStore};
 use tokio_rustls::TlsConnector;
 
-use crate::certificates;
 use crate::client;
 use crate::resolve_address;
+use crate::{certificates, EasyTlsError};
 
 fn get_client_config(root_store: RootCertStore) -> ClientConfig {
     rustls::ClientConfig::builder()
@@ -38,7 +38,7 @@ impl TlsClient {
 
         let host = match host.to_string().split_once(":") {
             Some((hostname, _)) => hostname.to_string(),
-            None => return Err(anyhow!("bad!")),
+            None => return Err(EasyTlsError::ResolutionFailure(host).into()),
         };
 
         Ok(TlsClient {

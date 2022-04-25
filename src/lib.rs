@@ -1,5 +1,5 @@
 //! This library provides convenient abstractions for creating simple TLS
-//! sockets with `tokio-rustls`.
+//! sockets with `tokio-rustls`. Examples can be found [in the examples directory](https://github.com/KennethWilke/easy-tokio-rustls/tree/main/examples)
 
 use anyhow::Result;
 use std::net::SocketAddr;
@@ -16,11 +16,16 @@ pub use server::TlsServer;
 /// Represents custom errors returned directly by this crate
 #[derive(Error, Debug)]
 pub enum EasyTlsError {
+    /// Returned for address resolution failures
     #[error("Failed to resolve address for '{0}'")]
     ResolutionFailure(String),
+
+    /// Returned when reading certificates or keys fails
+    #[error("Failed to resolve address for '{0}'")]
+    CertificateError(String),
 }
 
-/// This is a simplified address resolver
+/// This is a simplified async address resolver
 pub async fn resolve_address<T>(host: T) -> Result<SocketAddr>
 where
     T: ToSocketAddrs + ToString + Copy,
