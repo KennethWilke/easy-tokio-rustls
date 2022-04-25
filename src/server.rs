@@ -35,8 +35,8 @@ impl TlsServer {
         let cert_file = cert_file.to_string();
         let key_file = key_file.to_string();
 
-        let certificates = load_certificates(cert_file)?;
-        let mut keys = load_keys(key_file)?;
+        let certificates = load_certificates(cert_file).await?;
+        let mut keys = load_keys(key_file).await?;
 
         let address = resolve_address(interface.as_str()).await?;
 

@@ -1,26 +1,25 @@
 use anyhow::Result;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::{Path, PathBuf};
+use regex::Regex;
+use tokio::io::AsyncReadExt;
 use tokio_rustls::rustls::{self, OwnedTrustAnchor, RootCertStore};
 use tokio_rustls::webpki;
 
-use rustls_pemfile::{certs, rsa_private_keys};
-
 use tokio_rustls::rustls::{Certificate, PrivateKey};
 
-pub fn get_root_store(cafile: &Option<PathBuf>) -> Result<RootCertStore> {
+const MAX_PEM_SIZE: usize = 16 * 1024;
+const PEM_REGEX: &str = r"-----BEGIN (.+?)-----\n(?s)(.+?)\n-----END (.+?)-----";
+
+pub async fn get_root_store(cafile: Option<String>) -> Result<RootCertStore> {
     let cert_store = match cafile {
-        Some(cafile) => get_cafile_store(cafile),
+        Some(cafile) => get_cafile_store(cafile).await,
         None => get_default_store(),
     }?;
     Ok(cert_store)
 }
 
-fn get_cafile_store(cafile: &Path) -> Result<RootCertStore> {
+async fn get_cafile_store(cafile: String) -> Result<RootCertStore> {
     let mut cert_store = rustls::RootCertStore::empty();
-    let mut pemfile = BufReader::new(File::open(cafile)?);
-    let certs = rustls_pemfile::certs(&mut pemfile)?;
+    let certs = read_pem(cafile).await?;
     let trust_anchors = certs.iter().map(|cert| {
         let trust_anchor = webpki::TrustAnchor::try_from_cert_der(&cert[..]).unwrap();
         OwnedTrustAnchor::from_subject_spki_name_constraints(
@@ -47,22 +46,40 @@ fn get_default_store() -> Result<RootCertStore> {
     Ok(cert_store)
 }
 
-// TODO make async!
-pub fn load_certificates(path: String) -> Result<Vec<Certificate>> {
-    let mut reader = BufReader::new(File::open(path)?);
+pub async fn load_certificates(path: String) -> Result<Vec<Certificate>> {
     let mut certificates: Vec<Certificate> = Vec::new();
-    for cert in certs(&mut reader)? {
+    for cert in read_pem(path).await? {
         certificates.push(Certificate(cert))
     }
     Ok(certificates)
 }
 
-// TODO make async!
-pub fn load_keys(path: String) -> Result<Vec<PrivateKey>> {
-    let mut reader = BufReader::new(File::open(path)?);
+pub async fn load_keys(path: String) -> Result<Vec<PrivateKey>> {
     let mut keys: Vec<PrivateKey> = Vec::new();
-    for key in rsa_private_keys(&mut reader)? {
+    for key in read_pem(path).await? {
         keys.push(PrivateKey(key))
     }
     Ok(keys)
+}
+
+pub async fn read_pem(path: String) -> Result<Vec<Vec<u8>>> {
+    let mut file = tokio::fs::File::open(path).await?;
+    let mut buffer = [0; MAX_PEM_SIZE];
+    let size = file.read(&mut buffer).await?;
+    let pem_text = std::str::from_utf8(&buffer[..size])?;
+    let mut results = Vec::new();
+
+    let re = Regex::new(PEM_REGEX)?;
+    for capture in re.captures_iter(pem_text) {
+        let header = capture.get(1).unwrap().as_str();
+        let encoded = capture.get(2).unwrap().as_str().replace("\n", "");
+        let footer = capture.get(3).unwrap().as_str();
+        if header != footer {
+            panic!("PEM header doesn't match footer")
+        }
+
+        results.push(base64::decode(encoded.as_bytes())?.to_vec());
+    }
+
+    Ok(results)
 }

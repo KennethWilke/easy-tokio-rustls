@@ -1,7 +1,6 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use std::convert::TryFrom;
 use std::net::SocketAddr;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio_rustls::client::TlsStream;
@@ -23,7 +22,7 @@ fn get_client_config(root_store: RootCertStore) -> ClientConfig {
 pub struct TlsClient {
     host: String,
     address: SocketAddr,
-    cafile: Option<PathBuf>,
+    cafile: Option<String>,
 }
 
 impl TlsClient {
@@ -37,6 +36,11 @@ impl TlsClient {
         let host = host.to_string();
         let address = resolve_address(host.as_str()).await?;
 
+        let host = match host.to_string().split_once(":") {
+            Some((hostname, _)) => hostname.to_string(),
+            None => return Err(anyhow!("bad!")),
+        };
+
         Ok(TlsClient {
             host,
             address,
@@ -46,7 +50,7 @@ impl TlsClient {
 
     /// This function can be called if you need to set or use a certificate
     /// authority file instead of the defaults
-    pub async fn set_cafile(&mut self, cafile: PathBuf) {
+    pub async fn set_cafile(&mut self, cafile: String) {
         self.cafile = Some(cafile)
     }
 
@@ -54,7 +58,7 @@ impl TlsClient {
     /// A [`TlsStream<TcpStream>`] handle will be returned on success
     pub async fn connect(&self) -> Result<TlsStream<TcpStream>> {
         let cafile = &self.cafile;
-        let root_store = certificates::get_root_store(cafile)?;
+        let root_store = certificates::get_root_store(cafile.clone()).await?;
         let config = client::get_client_config(root_store);
         let connector = TlsConnector::from(Arc::new(config));
         let tcp = TcpStream::connect(self.address).await?;
