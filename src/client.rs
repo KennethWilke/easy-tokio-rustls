@@ -3,11 +3,10 @@ use std::convert::TryFrom;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpStream;
-use tokio_rustls::client::TlsStream;
 use tokio_rustls::rustls::{self, ClientConfig, RootCertStore};
 use tokio_rustls::TlsConnector;
 
-use crate::client;
+use crate::{client, TlsStream};
 use crate::resolve_address;
 use crate::{certificates, EasyTlsError};
 
@@ -63,6 +62,7 @@ impl TlsClient {
         let connector = TlsConnector::from(Arc::new(config));
         let tcp = TcpStream::connect(self.address).await?;
         let domain = rustls::ServerName::try_from(self.host.as_str())?;
-        Ok(connector.connect(domain, tcp).await?)
+        let stream = connector.connect(domain, tcp).await?;
+        Ok(stream.into())
     }
 }

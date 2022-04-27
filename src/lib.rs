@@ -11,7 +11,8 @@ mod client;
 mod server;
 
 pub use client::TlsClient;
-pub use server::TlsServer;
+pub use server::{TlsServer,TlsListener};
+pub use tokio_rustls::TlsStream;
 
 /// Represents custom errors returned directly by this crate
 #[derive(Error, Debug)]
