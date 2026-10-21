@@ -13,7 +13,7 @@ license = "MIT"
 [dependencies]
 tokio = { version = "1.17.0", features = ["full"] }
 tokio-rustls = "0.23.3"
-webpki-roots = "0.22.3"
+webpki-roots = "1.0.10"
 rustls-pemfile = "1.0.0"
 thiserror = "1.0.30"
 anyhow = "1.0.57"
